@@ -160,6 +160,7 @@ internal class UiStrings @JvmOverloads constructor(
         text("Дозволи та служба", "Permissions and runtime", "权限与服务"),
         text("Параметри виводу камер", "Camera output settings", "摄像头输出设置"),
         text("Логи", "Logs", "日志"),
+        resource(R.string.camera_sources_title),
     )
     val debugModes get() = listOf(
         text("Поворотники", "Turn signals", "转向灯"),

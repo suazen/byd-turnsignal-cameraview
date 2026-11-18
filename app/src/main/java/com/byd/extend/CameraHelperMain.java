@@ -82,6 +82,29 @@ final class CameraHelperMain {
     private static final String[] DIRECT_CAMERA_TAGS = {
             "pano_h", "pano_l", "apa", "byd_apa"
     };
+
+    /**
+     * Physical AVM slot used for every attached preview Surface.  Detaching through the
+     * current assignment would target the wrong slot when the user edits the map while a
+     * stream is attached, so removals reuse the slot the Surface was opened with.
+     * Weak keys keep a released Surface from being retained by this bookkeeping.
+     */
+    private static final java.util.Map<Surface, Integer> ATTACHED_PREVIEW_SLOTS =
+            java.util.Collections.synchronizedMap(
+                    new java.util.WeakHashMap<Surface, Integer>());
+
+    static void recordAttachedPreviewSlot(Surface surface, int physicalIndex) {
+        if (surface == null) return;
+        ATTACHED_PREVIEW_SLOTS.put(surface, physicalIndex);
+    }
+
+    /** Returns the slot that must be removed for this Surface and forgets the record. */
+    static int previewSlotForRemoval(Surface surface, int logicalIndex) {
+        Integer recorded = surface == null ? null : ATTACHED_PREVIEW_SLOTS.remove(surface);
+        return recorded != null ? recorded
+                : CameraSourceMap.physicalIndexForAttachment(logicalIndex);
+    }
+
     private CameraHelperMain() {}
 
     static class HelperBinder extends Binder
@@ -162,6 +185,10 @@ final class CameraHelperMain {
             CameraInputQueue.initialize(context);
             counters = context.getSharedPreferences(COUNTER_PREFS, Context.MODE_PRIVATE);
             settings = context.getSharedPreferences("settings", Context.MODE_PRIVATE);
+            // The helper translates app-side logical preview slots to the physical AVM
+            // slots the user assigned.  In the shell process this is the replicated
+            // settings object, which the app mutates through the runtime host.
+            CameraSourceMap.install(settings);
             if (!(context instanceof CameraRuntimeContext)) migrateLegacyCounters(context);
             turnController = new TurnSignalController(
                     context, callbackHandler, this::acceptShellEvent, this::acceptControllerEvent);
@@ -669,6 +696,7 @@ final class CameraHelperMain {
                         "valid_tags", String.valueOf(tags),
                         "candidate_ids", candidateIds.toString(),
                         "width", width, "height", height,
+                        "source_map", CameraSourceMap.read(settings).describe(),
                         "cam_sort", systemProperty("vehicle.config.cam_sort"),
                         "cam_info_avm", systemProperty("vehicle.config.camInfo.avm"),
                         "vendor_cam_info_avm", systemProperty("vendor.vehicle.config.camInfo.avm"),
@@ -801,15 +829,19 @@ final class CameraHelperMain {
                         callbackType.getClassLoader(), new Class<?>[]{callbackType}, eventHandler(opened));
                 avm.getMethod("setEventCallback", callbackType).invoke(opened, callbackProxy);
 
+                int physicalIndex = CameraSourceMap.physicalIndexForAttachment(requestedIndex);
                 boolean added = invokeBoolean(avm, opened, "addPreviewSurface",
-                        new Class<?>[]{Surface.class, int.class}, requestedSurface, requestedIndex);
+                        new Class<?>[]{Surface.class, int.class}, requestedSurface,
+                        physicalIndex);
                 boolean set = invokeBoolean(avm, opened, "setPreviewSurface",
-                        new Class<?>[]{Surface.class, int.class}, requestedSurface, requestedIndex);
+                        new Class<?>[]{Surface.class, int.class}, requestedSurface,
+                        physicalIndex);
                 boolean started = invokeBoolean(avm, opened, "startPreview", new Class<?>[0]);
                 if (!set || !started) {
                     throw new IllegalStateException(
                             "Preview setup failed: add=" + added + ", set=" + set + ", start=" + started);
                 }
+                recordAttachedPreviewSlot(requestedSurface, physicalIndex);
 
                 camera = opened;
                 eventCallback = callbackProxy;
@@ -828,6 +860,7 @@ final class CameraHelperMain {
                         "request_id", requestId,
                         "renderer", stockInput ? "stock_avm_shell" : "direct_avm",
                         "view", viewName, "preview_index", previewIndex,
+                        "physical_preview_index", physicalIndex,
                         "input_for_stock_avm", stockInput,
                         "add_surface", added, "set_surface", set, "start_preview", started);
                 return result("camera_opened", null, requestedCameraId, requestedCameraTag);
@@ -1223,27 +1256,33 @@ final class CameraHelperMain {
                 avm.getMethod("setEventCallback", callbackType).invoke(opened, callbackProxy);
 
                 for (int i = 0; i < indexes.length; i++) {
+                    int physicalIndex = CameraSourceMap.physicalIndexForAttachment(indexes[i]);
                     attached[i] = invokeBoolean(avm, opened, "addPreviewSurface",
                             new Class<?>[]{Surface.class, int.class},
-                            requestedSurfaces[i], indexes[i]);
+                            requestedSurfaces[i], physicalIndex);
                     if (!attached[i]) {
                         throw new IllegalStateException(
                                 "addPreviewSurface returned false for index " + indexes[i]);
                     }
+                    recordAttachedPreviewSlot(requestedSurfaces[i], physicalIndex);
                 }
                 if (CAMERA_OWNER_OVERLAY.equals(requestedOwner)
                         && activityPreview.has()) {
                     if (!activityPreview.value().isValid()) {
                         releaseActivityPreview();
                     } else {
+                        int activityPhysicalIndex = CameraSourceMap.physicalIndexForAttachment(
+                                activityPreview.index());
                         activityAttached = invokeBoolean(avm, opened, "addPreviewSurface",
                                 new Class<?>[]{Surface.class, int.class},
-                                activityPreview.value(), activityPreview.index());
+                                activityPreview.value(), activityPhysicalIndex);
                         if (!activityAttached) {
                             throw new IllegalStateException(
                                     "addPreviewSurface returned false for Activity index "
                                             + activityPreview.index());
                         }
+                        recordAttachedPreviewSlot(
+                                activityPreview.value(), activityPhysicalIndex);
                     }
                 }
                 boolean started = invokeBoolean(avm, opened,
@@ -3491,7 +3530,8 @@ final class CameraHelperMain {
                     boolean removed = invokeBoolean(
                             camera.getClass(), camera, "rmPreviewSurface",
                             new Class<?>[]{Surface.class, int.class},
-                            activeSurface, activeIndex);
+                            activeSurface,
+                            previewSlotForRemoval(activeSurface, activeIndex));
                     if (!removed) {
                         throw new IllegalStateException(
                                 "rmPreviewSurface returned false for Activity preview");
@@ -5255,9 +5295,11 @@ final class CameraHelperMain {
             public boolean add(Surface value, int index) throws Exception {
                 long inputToken = CameraInputQueue.begin(index);
                 boolean added = false;
+                int physicalIndex = CameraSourceMap.physicalIndexForAttachment(index);
                 try {
                     added = invokeBoolean(type, target, "addPreviewSurface",
-                            new Class<?>[]{Surface.class, int.class}, value, index);
+                            new Class<?>[]{Surface.class, int.class}, value, physicalIndex);
+                    if (added) recordAttachedPreviewSlot(value, physicalIndex);
                     return added;
                 } finally {
                     CameraInputQueue.end(value, inputToken, added);
@@ -5267,7 +5309,8 @@ final class CameraHelperMain {
             @Override
             public boolean remove(Surface value, int index) throws Exception {
                 boolean removed = invokeBoolean(type, target, "rmPreviewSurface",
-                        new Class<?>[]{Surface.class, int.class}, value, index);
+                        new Class<?>[]{Surface.class, int.class}, value,
+                        previewSlotForRemoval(value, index));
                 if (removed) CameraInputQueue.detach(value);
                 return removed;
             }

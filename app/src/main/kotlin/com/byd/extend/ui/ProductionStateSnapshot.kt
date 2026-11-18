@@ -37,6 +37,10 @@ fun readProductionUiState(
             cornerRadius = BlindSpotOverlayController.readCornerRadius(preferences).toString(),
             transparency = BlindSpotOverlayController.readTransparencyPercent(preferences).toString(),
         ),
+        cameraSources = CameraSourceMap.read(preferences).let { sources ->
+            CameraSourceUiState(sources.front(), sources.rear(),
+                sources.left(), sources.right())
+        },
         automaticUpdate = preferences.getBoolean("update_auto_check_enabled", true),
         extendedLogs = preferences.getBoolean(DiagnosticLogPolicy.PREF_ENABLED, false),
         recordLogcat = preferences.getBoolean(ContinuousLogcatRecorder.PREF_ENABLED, false),

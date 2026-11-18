@@ -1112,6 +1112,7 @@ class ProductionUiController @JvmOverloads constructor(
             action.target == ToggleTarget.Simple(ToggleId.UpdateHintEnabled)
         is BydExtendUiAction.SetMirrorBorderColor, is BydExtendUiAction.SetProfileBorder,
         is BydExtendUiAction.SetMusicExclusions -> false
+        is BydExtendUiAction.SetCameraSource -> false
         BydExtendUiAction.RequestMirrorOverlayPermission -> false
         is BydExtendUiAction.SetUpdateHintAppearance -> true
         is BydExtendUiAction.Run -> when (action.command) {

@@ -327,4 +327,13 @@
     <string name="music_apps_loading">"Завантаження застосунків…"</string>
     <string name="music_apps_error">"Не вдалося завантажити перелік застосунків"</string>
     <string name="music_apps_empty">"Застосунків не знайдено"</string>
+    <string name="camera_sources_title">Джерела камер</string>
+    <string name="camera_sources_hint">Призначте кожну сторону авто сигналу AVM, який її показує. Вибір сигналу, зайнятого іншою стороною, міняє їх місцями. За замовчуванням: 1 — задня, 2 — ліва, 3 — права, 4 — передня. Після зміни відкрийте камеру заново.</string>
+    <string name="camera_source_front">Передня</string>
+    <string name="camera_source_rear">Задня</string>
+    <string name="camera_source_left">Ліва</string>
+    <string name="camera_source_right">Права</string>
+    <string name="camera_source_slot">Сигнал</string>
+    <string name="camera_source_reset">Скинути призначення</string>
+    <string name="camera_source_reset_hint">Повернути стандартну схему: 1 — задня, 2 — ліва, 3 — права, 4 — передня</string>
 </resources>

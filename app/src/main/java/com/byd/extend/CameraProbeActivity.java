@@ -3713,6 +3713,8 @@ public final class CameraProbeActivity extends ComponentActivity
                     MusicSettings.encode(((BydExtendUiAction.SetMusicExclusions) action).getPackages())).apply();
             CameraHelperService.musicSettingsChanged(this);
             updateControls();
+        } else if (action instanceof BydExtendUiAction.SetCameraSource) {
+            applyCameraSourceAssignment((BydExtendUiAction.SetCameraSource) action);
         } else if (action instanceof BydExtendUiAction.Toggle) {
             handleProductionToggle((BydExtendUiAction.Toggle) action);
         } else if (action instanceof BydExtendUiAction.CommitNumber) {
@@ -5033,6 +5035,39 @@ public final class CameraProbeActivity extends ComponentActivity
                 productionUi.getState().getReverse().getSelectedSource());
     }
 
+    /**
+     * Persists one vehicle-direction -> AVM preview-slot assignment.  Picking a slot
+     * another direction already owns swaps the two, so the map always stays a
+     * permutation of 1..4.
+     */
+    private void applyCameraSourceAssignment(BydExtendUiAction.SetCameraSource change) {
+        if (change == null) return;
+        CameraSourceMap current = CameraSourceMap.read(preferences);
+        CameraSourceMap next = current.withIndex(change.getDirection(), change.getIndex());
+        if (next.equals(current)) return;
+        CameraSourceMap.write(preferences, next);
+        record("camera_source_assignment", "map", next.describe(),
+                "direction", change.getDirection(), "slot", change.getIndex());
+        reloadCameraSourceAssignment();
+    }
+
+    private void resetCameraSourceAssignment() {
+        CameraSourceMap current = CameraSourceMap.read(preferences);
+        if (current.isDefault()) return;
+        CameraSourceMap.writeDefaults(preferences);
+        record("camera_source_assignment", "map", "defaults", "reset", true);
+        reloadCameraSourceAssignment();
+    }
+
+    /**
+     * Pushes the new map to the helper.  Already attached AVM inputs keep the slot they
+     * were opened with, so the affected camera view is rebound the next time it opens.
+     */
+    private void reloadCameraSourceAssignment() {
+        CameraHelperService.cameraSettingsChanged(this);
+        if (productionUi != null) productionUi.reload();
+    }
+
     private void handleProductionCommand(BydExtendUiAction.Run action) {
         CommandId command = action.getCommand();
         if (handleRuntimeDialogCommand(command)) return;
@@ -5065,6 +5100,7 @@ public final class CameraProbeActivity extends ComponentActivity
                             : productionUi.getState().getReverse().getSelectedTarget());
         } else if (manualSignalPayload(command) >= 0) requestManualTurnState(manualSignalPayload(command));
         else if (command == CommandId.StopDiagnosticCamera) stopActivityCameraManually("ui_stop");
+        else if (command == CommandId.ResetCameraSources) resetCameraSourceAssignment();
         else if (command == CommandId.OpenBackgroundSettings) openBackgroundStartSettings("settings_button");
         else if (command == CommandId.GrantAdb) requestAdbAuthorization(
                 "adb_authorization_manual", "settings_manual", false);
