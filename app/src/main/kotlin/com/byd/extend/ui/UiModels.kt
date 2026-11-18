@@ -33,7 +33,7 @@ enum class CalibrationStage { Original, Correction, Output }
 enum class ReverseSource { Rear, Front }
 enum class DiagnosticMode { Signals, Direct, Avm }
 enum class SignalsCategory { TurnSignals, Music, Weather, Avas, AdbRecovery, Calls, Motion }
-enum class SettingsCategory { Permissions, CameraOutput, Logs }
+enum class SettingsCategory { Permissions, CameraOutput, Logs, CameraSources }
 enum class SettingsOperation { AutoStart, Adb, Update, Logs, Compatibility, Preset, Import }
 enum class DialogKind { Background, Update, Shutdown, Progress, Message, ReverseButtonCapture }
 enum class StatusTone { Ok, Warning, Error, Neutral }
@@ -290,6 +290,7 @@ enum class CommandId {
     MirrorResetCorrection,
     MirrorResetOutput,
     MirrorHide,
+    ResetCameraSources,
 }
 
 enum class ParkingView(val sourceIndex: Int) {
@@ -731,12 +732,28 @@ data class CameraOutputUiState(
 )
 
 @Immutable
+data class CameraSourceUiState(
+    val front: Int = 4,
+    val rear: Int = 1,
+    val left: Int = 2,
+    val right: Int = 3,
+) {
+    fun index(direction: Int): Int = when (direction) {
+        com.byd.extend.CameraSourceMap.FRONT -> front
+        com.byd.extend.CameraSourceMap.REAR -> rear
+        com.byd.extend.CameraSourceMap.LEFT -> left
+        else -> right
+    }
+}
+
+@Immutable
 data class SettingsUiState(
     val category: SettingsCategory = SettingsCategory.Permissions,
     val automaticStart: Boolean = false,
     val automaticStartOperation: OperationUiState = OperationUiState(),
     val adbOperation: OperationUiState = OperationUiState(),
     val cameraOutput: CameraOutputUiState = CameraOutputUiState(),
+    val cameraSources: CameraSourceUiState = CameraSourceUiState(),
     val automaticUpdate: Boolean = true,
     val extendedLogs: Boolean = false,
     val recordLogcat: Boolean = false,
@@ -939,6 +956,12 @@ sealed interface BydExtendUiAction {
         val profile: CameraProfileId? = null,
         val reverseElement: ReverseElement? = null,
         val mirrorFront: Boolean? = null,
+    ) : BydExtendUiAction
+
+    /** Assigns one vehicle direction to a physical AVM preview slot (1..4). */
+    @Immutable data class SetCameraSource(
+        val direction: Int,
+        val index: Int,
     ) : BydExtendUiAction
 }
 

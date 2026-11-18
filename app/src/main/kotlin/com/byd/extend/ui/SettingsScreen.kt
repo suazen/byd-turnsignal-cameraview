@@ -18,8 +18,10 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import com.byd.extend.R
 import com.byd.extend.ui.icons.BugReport
 import com.byd.extend.ui.icons.Security
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Share
 import com.byd.extend.ui.icons.Videocam
 import androidx.compose.material3.Icon
@@ -64,7 +66,8 @@ internal fun SettingsScreen(
                     fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
                 Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(sidebarScroll).selectableGroup(),
                     verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    val icons = listOf(Icons.Outlined.Security, Icons.Outlined.Videocam, Icons.Outlined.BugReport)
+                    val icons = listOf(Icons.Outlined.Security, Icons.Outlined.Videocam,
+                        Icons.Outlined.BugReport, Icons.Outlined.Settings)
                     strings.settingsCategories.forEachIndexed { index, title ->
                         val selected = state.category.ordinal == index
                         val press = rememberPressFeedback()
@@ -105,6 +108,7 @@ internal fun SettingsScreen(
                         editUpdateHint = true
                     }
                     SettingsCategory.CameraOutput -> CameraOutputSettings(state, strings, colors, onAction, onPreview)
+                    SettingsCategory.CameraSources -> CameraSourcesSettings(state, strings, colors, onAction)
                     SettingsCategory.Logs -> LogSettings(state, strings, colors, onAction)
                 }
             }
@@ -244,6 +248,62 @@ private fun FormScope.CameraOutputSettings(state: SettingsUiState, strings: UiSt
             },
             onCommitSession = { value, session -> onAction(BydExtendUiAction.CommitNumber(
                 NumberTarget.Output(OutputNumber.Transparency), value, session)) }) }
+    }
+    return this
+}
+
+@Composable
+private fun FormScope.CameraSourcesSettings(
+    state: SettingsUiState,
+    strings: UiStrings,
+    colors: UiPalette,
+    onAction: (BydExtendUiAction) -> Unit,
+): FormScope {
+    val sources = state.cameraSources
+    val directions = listOf(
+        com.byd.extend.CameraSourceMap.FRONT to strings.resource(R.string.camera_source_front),
+        com.byd.extend.CameraSourceMap.REAR to strings.resource(R.string.camera_source_rear),
+        com.byd.extend.CameraSourceMap.LEFT to strings.resource(R.string.camera_source_left),
+        com.byd.extend.CameraSourceMap.RIGHT to strings.resource(R.string.camera_source_right),
+    )
+    val slots = (com.byd.extend.CameraSourceMap.MIN_INDEX..com.byd.extend.CameraSourceMap.MAX_INDEX)
+        .map { slot -> "${strings.resource(R.string.camera_source_slot)} $slot" }
+    FormSection(strings.settingsCategories[3], colors, key = "camera-sources") {
+        row("camera-sources-hint") {
+            Text(strings.resource(R.string.camera_sources_hint), color = colors.muted,
+                fontSize = 13.sp, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+        }
+        directions.forEachIndexed { position, entry ->
+            val direction = entry.first
+            val label = entry.second
+            row("camera-source-$direction") {
+                SettingsActionRow(label, "", colors, verticalPadding = 8.dp) {
+                    ChoiceField(
+                        title = "",
+                        choices = slots,
+                        selected = sources.index(direction) - 1,
+                        onSelect = { slot ->
+                            onAction(BydExtendUiAction.SetCameraSource(direction, slot + 1))
+                        },
+                        colors = colors,
+                        modifier = Modifier.width(220.dp),
+                        hudCompact = true,
+                    )
+                }
+            }
+            if (position < directions.lastIndex) {
+                row("camera-source-divider-$direction") { Divider(colors) }
+            }
+        }
+        row("camera-sources-reset") {
+            SettingsActionRow(strings.resource(R.string.camera_source_reset),
+                strings.resource(R.string.camera_source_reset_hint), colors, verticalPadding = 8.dp) {
+                ActionButton(strings.resource(R.string.camera_source_reset), colors,
+                    Modifier.width(190.dp), mainBackground = true) {
+                    onAction(BydExtendUiAction.Run(CommandId.ResetCameraSources))
+                }
+            }
+        }
     }
     return this
 }

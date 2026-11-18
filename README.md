@@ -24,6 +24,7 @@ BYD Extend adds configurable camera views, a rearview-mirror widget, turn-signal
   - [Parking cameras](#parking-cameras)
   - [Reverse cameras](#reverse-cameras)
   - [Rearview mirror](#rearview-mirror)
+  - [Camera sources](#camera-sources)
   - [Cameras integration](#cameras-integration)
 - [Remote camera viewing: setup and everyday use](#remote-camera-viewing-setup-and-everyday-use)
   - [What you need](#what-you-need)
@@ -227,6 +228,12 @@ Assigned buttons can replace their original actions. Reset a binding to release 
 ![Rearview mirror — Calibration: output](docs/screenshots/en/mirror-output.png)
 
 </details>
+
+### Camera sources
+
+`Settings -> Camera sources` assigns each side of the car to the AVM signal that actually shows it. The reference vehicle uses **1** rear, **2** left, **3** right, **4** front; another model or firmware can order the four fisheye streams differently, which appears as a left turn showing the right-hand view, or a parking/reverse view on the wrong side.
+
+Choose a signal for each side; picking one that another side already uses swaps the two, so the four assignments always stay distinct. `Reset assignment` restores the reference order. The assignment applies to inputs opened after the change, so reopen the affected camera view to verify it. Recalibrate a view after changing its source: crop, rotation, and correction were tuned for the previous stream.
 
 ### Cameras integration
 

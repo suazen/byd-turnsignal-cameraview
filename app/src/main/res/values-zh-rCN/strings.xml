@@ -316,4 +316,13 @@
     <string name="cameras_initial_composition">"完整组合"</string>
     <string name="cameras_initial_exterior">"车外"</string>
     <string name="cameras_initial_interior">"车内"</string>
+    <string name="camera_sources_title">摄像头来源</string>
+    <string name="camera_sources_hint">将车身每一侧指定到显示它的 AVM 信号。若选择的信号已被其它侧占用，两者会互换。默认：1 后、2 左、3 右、4 前。更改后请重新打开摄像头画面。</string>
+    <string name="camera_source_front">前</string>
+    <string name="camera_source_rear">后</string>
+    <string name="camera_source_left">左</string>
+    <string name="camera_source_right">右</string>
+    <string name="camera_source_slot">信号</string>
+    <string name="camera_source_reset">恢复默认</string>
+    <string name="camera_source_reset_hint">恢复参考车型映射：1 后、2 左、3 右、4 前</string>
 </resources>

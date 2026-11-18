@@ -316,4 +316,13 @@
     <string name="cameras_initial_composition">"Полная композиция"</string>
     <string name="cameras_initial_exterior">"Внешние"</string>
     <string name="cameras_initial_interior">"Внутренние"</string>
+    <string name="camera_sources_title">Источники камер</string>
+    <string name="camera_sources_hint">Назначьте каждую сторону автомобиля сигналу AVM, который её показывает. Выбор сигнала, занятого другой стороной, меняет их местами. По умолчанию: 1 — задняя, 2 — левая, 3 — правая, 4 — передняя. После изменения откройте камеру заново.</string>
+    <string name="camera_source_front">Передняя</string>
+    <string name="camera_source_rear">Задняя</string>
+    <string name="camera_source_left">Левая</string>
+    <string name="camera_source_right">Правая</string>
+    <string name="camera_source_slot">Сигнал</string>
+    <string name="camera_source_reset">Сбросить назначение</string>
+    <string name="camera_source_reset_hint">Вернуть эталонную схему: 1 — задняя, 2 — левая, 3 — правая, 4 — передняя</string>
 </resources>

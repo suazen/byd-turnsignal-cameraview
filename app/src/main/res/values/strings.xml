@@ -316,4 +316,13 @@
     <string name="cameras_initial_composition">"Full composition"</string>
     <string name="cameras_initial_exterior">"Exterior"</string>
     <string name="cameras_initial_interior">"Interior"</string>
+    <string name="camera_sources_title">Camera sources</string>
+    <string name="camera_sources_hint">Assign each side of the car to the AVM signal that shows it. Choosing a signal another side already uses swaps them. Default: 1 rear, 2 left, 3 right, 4 front. Reopen a camera view after changing this.</string>
+    <string name="camera_source_front">Front</string>
+    <string name="camera_source_rear">Rear</string>
+    <string name="camera_source_left">Left</string>
+    <string name="camera_source_right">Right</string>
+    <string name="camera_source_slot">Signal</string>
+    <string name="camera_source_reset">Reset assignment</string>
+    <string name="camera_source_reset_hint">Restore the reference mapping: 1 rear, 2 left, 3 right, 4 front</string>
 </resources>
